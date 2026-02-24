@@ -8,31 +8,37 @@ dotenv.config();
 
 const { Pool } = pkg;
 const app = express();
-app.use(express.json());
 
 /* =========================
    CORS
 ========================= */
-const allowedOrigins = (process.env.CORS_ORIGIN || "https://checks.energy,https://www.checks.energy")
+const allowedOrigins = (
+  process.env.CORS_ORIGIN ||
+  "https://checks.energy,https://www.checks.energy,https://checks-portal-package.onrender.com,http://localhost:5173"
+)
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin(origin, cb) {
-      // richieste server-to-server / browser senza origin
-      if (!origin) return cb(null, true);
+const corsMiddleware = cors({
+  origin(origin, cb) {
+    // richieste server-to-server / browser senza origin
+    if (!origin) return cb(null, true);
 
-      const norm = origin.replace(/\/$/, "");
-      const ok = allowedOrigins.some((o) => o.replace(/\/$/, "") === norm);
+    const norm = origin.replace(/\/$/, "");
+    const ok = allowedOrigins.some((o) => o.replace(/\/$/, "") === norm);
 
-      return ok ? cb(null, true) : cb(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+    return ok ? cb(null, true) : cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+});
+
+app.use(corsMiddleware);
+app.options("*", corsMiddleware); // gestisce esplicitamente le preflight OPTIONS
+
+app.use(express.json());
 
 /* =========================
    DB
